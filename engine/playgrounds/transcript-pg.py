@@ -1,85 +1,67 @@
 from youtube_transcript_api import YouTubeTranscriptApi, YouTubeRequestFailed
-from summa import summarizer
-import json
-
-def sum(text, ratio):
-        sum = summarizer.summarize(text, ratio=ratio)
-        return sum
 
 def transcript_request(video):
-        '''
-        Retrieves/returns the transcript for a prompted video
+    '''
+    Retrieves/returns the transcript for a prompted video
 
-        Args:
-            (str) video: video link or id
+    Args:
+        (str) video: video link or id
 
-        Returns: signal[]
-            if error = [0] = (int) error_code
+    Returns: signal[]
+        if error = [0] = (int) error_code
 
-            else = [(int) 398, (str) transcript]
-        '''
-        try:
-            if "youtube.com" in video:
-                video_id = video.split("v=")[1].split("&")[0]
-            elif "youtu.be" in video:
-                video_id = video.split("/")[-1]
-            else:
-                try: 
-                    transcript = ""
-                    for item in YouTubeTranscriptApi.get_transcript(video):
-                        transcript += item["text"] + " "
-                    return [398, transcript] # SUCCESS
-                except YouTubeRequestFailed as e:
-                    return [401] #TRANSCRIPT NOT FOUND
+        else = [(int) 398, (str) transcript]
 
-        except Exception as e:
-            return [400] # VIDEO NOT FOUND
-    
-        try: 
-            transcript = ""
-            for item in YouTubeTranscriptApi.get_transcript(video_id):
-                transcript += item["text"] + " "
-        
-            if len(transcript) > 12000:
-                tran = transcript[:10000]
-                script = transcript[10000:]
-                while True:
-                    if len(script) > 2000:
-                        script = sum(script, ratio=0.5)
-                    else:
-                        transcript = tran + " " + script
-                        break
-            
-            
-            return [398, transcript]  # SUCCESS
-
-            
-
-        except Exception as e:
-            return [401,video] #TRANSCRIPT NOT FOUND
-
-def test(video):
-    transcript = transcript_request(video)
-    if transcript[0] == 398:
-        with open("transcript-dump.txt", "w") as file:
-            file.write(transcript[1])
-    elif transcript[0] == 401:
-        print(transcript[0], +  " " + transcript[1])
+    Return Codes:
+        398 - Success
+        400 - Transcript not found
+    '''
+    if "youtube.com" in video:
+        video_id = video.split("v=")[1].split("&")[0]
+    elif "youtu.be" in video:
+        video_id = video.split("/")[-1]
     else:
-        print(transcript[0])
+        video_id = video
+    try: 
+        transcript = ""
+        for item in YouTubeTranscriptApi.get_transcript(video_id):
+            transcript += item["text"] + " "
 
-'''
-Transcript Playground - push changes to code above before main glimpse.py - Test below
+        if len(transcript) > 12000:
+            transcript = transcript[:12000]
 
-Can pull up to 20 minutes of footage
+        return [398, transcript] # SUCCESS
 
-Relevant Codes:
-    [398] = Transcript request successful
-    [400] = Video not found at link or id
-    [401] = Transcript not found at valid link/id
-'''
+    except Exception:
+        return [400, video_id] #TRANSCRIPT NOT FOUND 
 
-with open("C:/Users/morot/Documents/bmg/glimpse/engine/playgrounds/videos.json", "r") as file:
-    videos = json.loads(file.read())
 
-#
+
+# Method that takes in tuples of transcript inputs and expected outputs, runs them, and returns results of tests
+
+def run_tests(tests):
+    '''
+    Method that takes in tuples of transcript inputs and expected outputs, runs them, and returns results of tests
+
+    Args:
+        tuple array - tests: list of tuples, each containing (str) input and (str) expected output
+
+    Returns: (str) results of tests
+    '''
+    results = []
+    for case in tests:
+        request = transcript_request(case[0])
+        if request[0] == case[1]:
+            results.append("Success")
+        else:
+            results.append("Failure - Expected: " + str(case[1]) + " | Actual: " + str(request[0]))
+    return results
+# Test cases
+tests = [("https://www.youtube.com/watch?v=G6uwkc11NZ8", 398), 
+         ("https://www.youtube.com/watch?v=Guwkc11NZ8", 400),
+         ("G6uwkc11NZ8", 398)]
+
+# Run tests
+results = run_tests(tests)
+for result in results:
+    print(result)
