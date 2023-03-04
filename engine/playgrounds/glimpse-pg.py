@@ -57,7 +57,7 @@ def glimpse(video):
 
     def blog_request(transcript):
         try:
-            openai.api_key = "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"
+            openai.api_key = "key"
             blog = openai.Completion.create(
                 model="text-davinci-003",
                 prompt=f"Write a long-form blog that discusses the main points in the following video transcript: {transcript}\
