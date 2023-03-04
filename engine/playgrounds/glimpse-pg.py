@@ -1,4 +1,9 @@
+'''
+Returns a blog for a youtube video
+Return Codes:
 
+
+'''
 import openai
 from youtube_transcript_api import YouTubeTranscriptApi, YouTubeRequestFailed
 
@@ -11,10 +16,7 @@ def glimpse(video):
         (str) video: either a YT video link or id
 
     Returns:
-        if error:
-            (int) error_code: Corresponding to codes in file tag
-        else:
-            (str) blog: the blog for the prompted video  
+        
     '''
 
     def transcript_request(video):
@@ -28,24 +30,17 @@ def glimpse(video):
             if error = [0] = (int) error_code
 
             else = [(int) 398, (str) transcript]
-        '''
-        try:
-            if "youtube.com" in video:
-                video_id = video.split("v=")[1].split("&")[0]
-            elif "youtu.be" in video:
-                video_id = video.split("/")[-1]
-            else:
-                try: 
-                    transcript = ""
-                    for item in YouTubeTranscriptApi.get_transcript(video):
-                        transcript += item["text"] + " "
-                    return [398, transcript] # SUCCESS
-                except YouTubeRequestFailed as e:
-                    return [401] #TRANSCRIPT NOT FOUND
 
-        except Exception as e:
-            return [400] # VIDEO NOT FOUND
-    
+        Return Codes:
+            398 - Success
+            400 - Transcript not found
+        '''
+        if "youtube.com" in video:
+            video_id = video.split("v=")[1].split("&")[0]
+        elif "youtu.be" in video:
+            video_id = video.split("/")[-1]
+        else:
+            video_id = video
         try: 
             transcript = ""
             for item in YouTubeTranscriptApi.get_transcript(video_id):
@@ -53,17 +48,16 @@ def glimpse(video):
 
             if len(transcript) > 12000:
                 transcript = transcript[:12000]
-            
-            return [398, transcript]  # SUCCESS
 
+            return [398, transcript] # SUCCESS
 
-        except Exception as e:
-            return [401, video] #TRANSCRIPT NOT FOUND
+        except Exception:
+            return [400, video_id] #TRANSCRIPT NOT FOUND 
 
 
     def blog_request(transcript):
         try:
-            openai.api_key = "KEY"
+            openai.api_key = "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"
             blog = openai.Completion.create(
                 model="text-davinci-003",
                 prompt=f"Write a long-form blog that discusses the main points in the following video transcript: {transcript}\
@@ -74,7 +68,7 @@ def glimpse(video):
             return [399, blog]
 
         except Exception as e:
-            return [402, e]
+            return [401, e]
 
     transcript = transcript_request(video)
     if transcript[0] == 398:
@@ -82,14 +76,14 @@ def glimpse(video):
         if blog[0] == 399:
             return [399, blog[1]]
         else:
-            return [402, blog[1]]
+            return [401]
     else:
-        return [transcript[0], transcript[1]]
+        return [400]
 
+glimpse = glimpse("https://www.youtube.com/watch?v=G6uwkc11NZ8")
+if glimpse[0] == 399:
+    with open("blog.md", "w") as f:
+        f.write(glimpse[1])
+else:
+    print(glimpse[0])
 
-with open("output.md" , "w") as file:
-    blog = glimpse("https://www.youtube.com/watch?v=bAlF39Y_Lvw")
-    if blog[0] == 399:
-        file.write(blog[1])
-    else:
-        file.write(f"Error {blog[0]}")
